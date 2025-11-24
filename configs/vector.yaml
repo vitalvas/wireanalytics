@@ -1,0 +1,217 @@
+sources:
+  analytics_http:
+    type: http_server
+    address: "0.0.0.0:8080"
+    path: "/api/v1/collect"
+    method: "POST"
+    headers:
+      - "X-Forwarded-For"
+      - "X-Real-IP"
+      - "User-Agent"
+
+  nel_http:
+    type: http_server
+    address: "0.0.0.0:8080"
+    path: "/api/v1/nel/collect"
+    method: "POST"
+    headers:
+      - "X-Forwarded-For"
+      - "X-Real-IP"
+      - "User-Agent"
+
+enrichment_tables:
+  geoip_city:
+    type: mmdb
+    path: /var/lib/vector/GeoLite2-City.mmdb
+
+  geoip_asn:
+    type: mmdb
+    path: /var/lib/vector/GeoLite2-ASN.mmdb
+
+  allowed_sites:
+    type: file
+    file:
+      path: /var/lib/vector/allowed_sites.csv
+      encoding:
+        type: csv
+    schema:
+      site_id: string
+
+transforms:
+  parse_analytics:
+    type: remap
+    inputs:
+      - analytics_http
+    source: |
+      . = parse_json!(.message)
+      .received_at = now()
+      .client_ip = .http_client_ip
+      .log_class = "webanalytics"
+
+  route_analytics_site:
+    type: route
+    inputs:
+      - parse_analytics
+    route:
+      allowed: |
+        site, err = get_enrichment_table_record("allowed_sites", {"site_id": .site_id})
+        err == null
+
+  metrics_analytics_dropped:
+    type: log_to_metric
+    inputs:
+      - route_analytics_site._unmatched
+    metrics:
+      - type: counter
+        field: site_id
+        name: wa_events_dropped_total
+        tags:
+          site_id: "{{site_id}}"
+          log_class: "webanalytics"
+
+  enrich_analytics_geoip:
+    type: remap
+    inputs:
+      - route_analytics_site.allowed
+    source: |
+      ip = .client_ip
+
+      geoip_city, err = get_enrichment_table_record("geoip_city", {"ip": ip})
+      if err == null {
+        .geo.country_code = geoip_city.country.iso_code
+        .geo.country_name = geoip_city.country.names.en
+        .geo.city = geoip_city.city.names.en
+        .geo.region = geoip_city.subdivisions[0].names.en
+        .geo.region_code = geoip_city.subdivisions[0].iso_code
+        .geo.postal_code = geoip_city.postal.code
+        .geo.latitude = geoip_city.location.latitude
+        .geo.longitude = geoip_city.location.longitude
+        .geo.timezone = geoip_city.location.time_zone
+      }
+
+      geoip_asn, err = get_enrichment_table_record("geoip_asn", {"ip": ip})
+      if err == null {
+        .geo.asn = geoip_asn.autonomous_system_number
+        .geo.as_org = geoip_asn.autonomous_system_organization
+      }
+
+  extract_metrics:
+    type: remap
+    inputs:
+      - enrich_analytics_geoip
+    source: |
+      .metric_tags = {
+        "site_id": .site_id,
+        "event": .event,
+        "device_type": .device.type,
+        "country": .geo.country_code
+      }
+
+  parse_nel:
+    type: remap
+    inputs:
+      - nel_http
+    source: |
+      .received_at = now()
+      .client_ip = .http_client_ip
+      .log_class = "nel"
+
+      reports = parse_json!(.message)
+      . = {}
+      .reports = []
+
+      for_each(array!(reports)) -> |_index, report| {
+        parsed = {
+          "timestamp": report.age,
+          "type": report.type,
+          "url": report.url,
+          "user_agent": report.user_agent
+        }
+
+        if exists(report.body) {
+          parsed.phase = report.body.phase
+          parsed.error_type = report.body.type
+          parsed.elapsed_time = report.body.elapsed_time
+          parsed.status_code = report.body.status_code
+          parsed.protocol = report.body.protocol
+          parsed.method = report.body.method
+          parsed.referrer = report.body.referrer
+          parsed.sampling_fraction = report.body.sampling_fraction
+          parsed.server_ip = report.body.server_ip
+        }
+
+        .reports = push(.reports, parsed)
+      }
+
+      .timestamp = now()
+      .log_class = "nel"
+      .site_id = parse_url!(.reports[0].url).host
+
+  route_nel_site:
+    type: route
+    inputs:
+      - parse_nel
+    route:
+      allowed: |
+        site, err = get_enrichment_table_record("allowed_sites", {"site_id": .site_id})
+        err == null
+
+  metrics_nel_dropped:
+    type: log_to_metric
+    inputs:
+      - route_nel_site._unmatched
+    metrics:
+      - type: counter
+        field: site_id
+        name: wa_events_dropped_total
+        tags:
+          site_id: "{{site_id}}"
+          log_class: "nel"
+
+  flatten_nel:
+    type: remap
+    inputs:
+      - route_nel_site.allowed
+    source: |
+      . = unnest!(.reports)
+
+  normalize_nel:
+    type: remap
+    inputs:
+      - flatten_nel
+    source: |
+      report = del(.reports)
+      . = merge(., report)
+      .event = "nel_" + (string!(.error_type) ?? "unknown")
+
+sinks:
+  victorialogs:
+    type: http
+    inputs:
+      - enrich_analytics_geoip
+      - normalize_nel
+    uri: http://victorialogs:9428/insert/jsonline
+    encoding:
+      codec: json
+    framing:
+      method: newline_delimited
+    compression: gzip
+    healthcheck:
+      enabled: false
+    request:
+      headers:
+        VL-Stream-Fields: log_class,site_id
+        VL-Time-Field: timestamp
+        VL-Msg-Field: event
+        AccountID: "0"
+        ProjectID: "0"
+
+  victoriametrics:
+    type: prometheus_remote_write
+    inputs:
+      - extract_metrics
+      - metrics_analytics_dropped
+      - metrics_nel_dropped
+    endpoint: "http://victoriametrics:8428/api/v1/write"
+    healthcheck:
+      enabled: false

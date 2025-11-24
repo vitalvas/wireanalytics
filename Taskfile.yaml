@@ -1,0 +1,42 @@
+version: '3'
+
+vars:
+  WEB_DIR: web
+  DIST_DIR: dist
+
+tasks:
+  default:
+    desc: Show available tasks
+    cmds:
+      - task --list
+
+  build:
+    desc: Build minified JavaScript
+    deps:
+      - build:js
+
+  build:js:
+    desc: Minify wa.js using terser
+    sources:
+      - "{{.WEB_DIR}}/wa.js"
+    generates:
+      - "{{.DIST_DIR}}/wa.min.js"
+    cmds:
+      - mkdir -p {{.DIST_DIR}}
+      - npx terser {{.WEB_DIR}}/wa.js --compress --mangle --output {{.DIST_DIR}}/wa.min.js
+      - echo "Original size:" && wc -c < {{.WEB_DIR}}/wa.js
+      - echo "Minified size:" && wc -c < {{.DIST_DIR}}/wa.min.js
+
+  clean:
+    desc: Remove build artifacts
+    cmds:
+      - rm -rf {{.DIST_DIR}}
+
+  watch:
+    desc: Watch for changes and rebuild
+    cmds:
+      - |
+        echo "Watching for changes..."
+        while true; do
+          fswatch -1 {{.WEB_DIR}}/wa.js && task build:js
+        done
