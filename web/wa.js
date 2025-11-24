@@ -1535,6 +1535,180 @@
     }
   }
 
+  const originalConsole = {
+    log: console.log,
+    info: console.info,
+    warn: console.warn,
+    error: console.error,
+    debug: console.debug
+  };
+  let consoleTrackingEnabled = false;
+
+  function formatConsoleArgs(args) {
+    return Array.from(args).map(function(arg) {
+      if (arg === null) return 'null';
+      if (arg === undefined) return 'undefined';
+      if (typeof arg === 'object') {
+        try {
+          return JSON.stringify(arg).substring(0, 500);
+        } catch (e) {
+          return '[Object]';
+        }
+      }
+      return String(arg).substring(0, 500);
+    }).join(' ');
+  }
+
+  function trackConsoleMessage(level, args) {
+    if (!consoleTrackingEnabled) return;
+
+    const data = collectBaseData('console');
+    data.console = {
+      level: level,
+      message: formatConsoleArgs(args),
+      timestamp: Date.now()
+    };
+
+    send(data);
+  }
+
+  function setupConsoleTracking() {
+    consoleTrackingEnabled = true;
+
+    console.log = function() {
+      trackConsoleMessage('log', arguments);
+      originalConsole.log.apply(console, arguments);
+    };
+
+    console.info = function() {
+      trackConsoleMessage('info', arguments);
+      originalConsole.info.apply(console, arguments);
+    };
+
+    console.warn = function() {
+      trackConsoleMessage('warn', arguments);
+      originalConsole.warn.apply(console, arguments);
+    };
+
+    console.error = function() {
+      trackConsoleMessage('error', arguments);
+      originalConsole.error.apply(console, arguments);
+    };
+
+    console.debug = function() {
+      trackConsoleMessage('debug', arguments);
+      originalConsole.debug.apply(console, arguments);
+    };
+  }
+
+  function stopConsoleTracking() {
+    consoleTrackingEnabled = false;
+    console.log = originalConsole.log;
+    console.info = originalConsole.info;
+    console.warn = originalConsole.warn;
+    console.error = originalConsole.error;
+    console.debug = originalConsole.debug;
+  }
+
+  const originalFetch = window.fetch;
+  const originalXHROpen = XMLHttpRequest.prototype.open;
+  const originalXHRSend = XMLHttpRequest.prototype.send;
+  let networkTrackingEnabled = false;
+
+  function shouldTrackRequest(url) {
+    if (!url) return false;
+    try {
+      const urlObj = new URL(url, window.location.origin);
+      if (config.endpoint && urlObj.href.startsWith(config.endpoint)) {
+        return false;
+      }
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function trackNetworkRequest(method, url, status, duration, requestSize, responseSize, error) {
+    if (!networkTrackingEnabled) return;
+
+    const data = collectBaseData('network_request');
+    data.network_request = {
+      method: method,
+      url: url ? url.substring(0, 500) : null,
+      status: status,
+      duration_ms: duration,
+      request_size: requestSize,
+      response_size: responseSize,
+      error: error || null,
+      timestamp: Date.now()
+    };
+
+    send(data);
+  }
+
+  function setupNetworkTracking() {
+    networkTrackingEnabled = true;
+
+    window.fetch = function(input, init) {
+      const startTime = Date.now();
+      const method = (init && init.method) ? init.method.toUpperCase() : 'GET';
+      const url = typeof input === 'string' ? input : (input.url || String(input));
+
+      if (!shouldTrackRequest(url)) {
+        return originalFetch.apply(this, arguments);
+      }
+
+      const requestSize = (init && init.body) ? (init.body.length || 0) : 0;
+
+      return originalFetch.apply(this, arguments).then(function(response) {
+        const duration = Date.now() - startTime;
+        const responseSize = parseInt(response.headers.get('content-length') || '0', 10);
+        trackNetworkRequest(method, url, response.status, duration, requestSize, responseSize, null);
+        return response;
+      }).catch(function(error) {
+        const duration = Date.now() - startTime;
+        trackNetworkRequest(method, url, 0, duration, requestSize, 0, error.message);
+        throw error;
+      });
+    };
+
+    XMLHttpRequest.prototype.open = function(method, url) {
+      this._waMethod = method ? method.toUpperCase() : 'GET';
+      this._waUrl = url;
+      this._waStartTime = null;
+      return originalXHROpen.apply(this, arguments);
+    };
+
+    XMLHttpRequest.prototype.send = function(body) {
+      const xhr = this;
+
+      if (!shouldTrackRequest(xhr._waUrl)) {
+        return originalXHRSend.apply(this, arguments);
+      }
+
+      xhr._waStartTime = Date.now();
+      xhr._waRequestSize = body ? (body.length || 0) : 0;
+
+      xhr.addEventListener('loadend', function() {
+        if (xhr._waStartTime) {
+          const duration = Date.now() - xhr._waStartTime;
+          const responseSize = parseInt(xhr.getResponseHeader('content-length') || '0', 10);
+          const error = xhr.status === 0 ? 'Network Error' : null;
+          trackNetworkRequest(xhr._waMethod, xhr._waUrl, xhr.status, duration, xhr._waRequestSize, responseSize, error);
+        }
+      });
+
+      return originalXHRSend.apply(this, arguments);
+    };
+  }
+
+  function stopNetworkTracking() {
+    networkTrackingEnabled = false;
+    window.fetch = originalFetch;
+    XMLHttpRequest.prototype.open = originalXHROpen;
+    XMLHttpRequest.prototype.send = originalXHRSend;
+  }
+
   function trackVisibilityChange() {
     if (document.visibilityState === 'hidden') {
       sendScrollDepth();
@@ -1835,6 +2009,38 @@
 
       isActive: function() {
         return replayEnabled;
+      }
+    },
+
+    console: {
+      start: function() {
+        if (!consoleTrackingEnabled) {
+          setupConsoleTracking();
+        }
+      },
+
+      stop: function() {
+        stopConsoleTracking();
+      },
+
+      isActive: function() {
+        return consoleTrackingEnabled;
+      }
+    },
+
+    network: {
+      start: function() {
+        if (!networkTrackingEnabled) {
+          setupNetworkTracking();
+        }
+      },
+
+      stop: function() {
+        stopNetworkTracking();
+      },
+
+      isActive: function() {
+        return networkTrackingEnabled;
       }
     }
   };

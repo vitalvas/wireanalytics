@@ -460,6 +460,113 @@ Track how long elements are visible.
 </article>
 ```
 
+## Console Logging
+
+### wa.console.start()
+
+Start capturing console log messages.
+
+**Parameters:** none
+
+**Returns:** void
+
+**Notes:**
+- Captures console.log, console.info, console.warn, console.error, console.debug
+- Messages are truncated to 500 characters per argument
+- Objects are JSON stringified
+- Not started automatically - must be called explicitly
+
+**Example:**
+```javascript
+// Start console capture
+wa.console.start();
+
+// All console calls are now tracked
+console.log('User action:', { action: 'click' });
+console.error('Something went wrong');
+```
+
+### wa.console.stop()
+
+Stop capturing console logs.
+
+**Parameters:** none
+
+**Returns:** void
+
+**Example:**
+```javascript
+wa.console.stop();
+```
+
+### wa.console.isActive()
+
+Check if console capture is active.
+
+**Parameters:** none
+
+**Returns:** boolean
+
+**Example:**
+```javascript
+if (!wa.console.isActive()) {
+  wa.console.start();
+}
+```
+
+## Network Tracing
+
+### wa.network.start()
+
+Start tracing Fetch and XMLHttpRequest (XHR) requests.
+
+**Parameters:** none
+
+**Returns:** void
+
+**Notes:**
+- Tracks all Fetch and XHR requests
+- Captures method, URL, status, duration, request/response size
+- Automatically excludes requests to the analytics endpoint
+- Not started automatically - must be called explicitly
+
+**Example:**
+```javascript
+// Start network tracing
+wa.network.start();
+
+// All fetch/XHR calls are now tracked
+fetch('/api/users').then(res => res.json());
+```
+
+### wa.network.stop()
+
+Stop tracing network requests.
+
+**Parameters:** none
+
+**Returns:** void
+
+**Example:**
+```javascript
+wa.network.stop();
+```
+
+### wa.network.isActive()
+
+Check if network tracing is active.
+
+**Parameters:** none
+
+**Returns:** boolean
+
+**Example:**
+```javascript
+if (!wa.network.isActive()) {
+  wa.network.start();
+}
+```
+
 ## Automatic Tracking
 
 The following events are tracked automatically without any code:

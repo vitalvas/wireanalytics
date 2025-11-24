@@ -97,6 +97,8 @@ Browser (NEL) -----
 | `ecommerce` | E-commerce events via `wa.ecommerce.*` |
 | `ab_test` | A/B test variant assignment via `wa.ab.*` |
 | `replay` | Session replay data via `wa.replay.*` |
+| `console` | Console log capture via `wa.console.*` |
+| `network_request` | Fetch/XHR tracing via `wa.network.*` |
 
 ## Data Collected
 
@@ -389,6 +391,27 @@ Replay event types: `snapshot`, `mouse`, `click`, `scroll`, `input`, `resize`, `
 | `network.connection` | Connection info object |
 | `network.offline_duration_ms` | Duration offline (ms, network_restored only) |
 | `network.total_offline_time_ms` | Total offline time in session (ms) |
+
+### Console Events
+
+| Field | Description |
+|-------|-------------|
+| `console.level` | Log level (log, info, warn, error, debug) |
+| `console.message` | Log message (max 500 chars per argument) |
+| `console.timestamp` | Unix timestamp (ms) |
+
+### Network Request Events
+
+| Field | Description |
+|-------|-------------|
+| `network_request.method` | HTTP method (GET, POST, etc.) |
+| `network_request.url` | Request URL (max 500 chars) |
+| `network_request.status` | HTTP status code (0 for network error) |
+| `network_request.duration_ms` | Request duration (ms) |
+| `network_request.request_size` | Request body size (bytes) |
+| `network_request.response_size` | Response size (bytes) |
+| `network_request.error` | Error message (if failed) |
+| `network_request.timestamp` | Unix timestamp (ms) |
 
 ## GeoIP Data (Vector Enrichment)
 

@@ -38,6 +38,8 @@
 | Scroll milestones | Yes | No | No | No | No |
 | Element visibility duration | Yes | No | No | No | No |
 | Network status tracking | Yes | No | No | No | No |
+| Console log capture | Yes | No | No | No | No |
+| Fetch/XHR tracing | Yes | No | No | No | No |
 | Custom dashboards | Grafana | Limited | No | No | Yes |
 | Data ownership | Full | No | No | Yes | Full |
 | GDPR compliant | Configurable | Requires consent | Yes | Yes | Configurable |
@@ -75,6 +77,8 @@
 | Session replay | Yes | No | No | No | Plugin |
 | Element visibility duration | Yes | No | No | No | No |
 | Network status | Yes | No | No | No | No |
+| Console log capture | Yes | No | No | No | No |
+| Fetch/XHR tracing | Yes | No | No | No | No |
 
 ## Data Collection Comparison
 
@@ -101,6 +105,8 @@
 | A/B Testing | Test name, variant, weights |
 | Session Replay | Mouse movements, clicks, scrolls, inputs, DOM mutations |
 | Element Visibility | Visibility duration, first seen timestamp |
+| Console Logs | Log level, message, timestamp |
+| Network Requests | Method, URL, status, duration, size, errors |
 | GeoIP | Country, city, region, postal, lat/long, ASN |
 
 ### Google Analytics 4
