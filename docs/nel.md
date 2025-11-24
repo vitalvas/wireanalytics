@@ -4,14 +4,13 @@ NEL is a browser API that reports network-level errors back to a server. It capt
 
 ## How It Works
 
-```
-Browser --> Your Server (with NEL headers)
-                |
-                v (on network error)
-Browser --> NEL Endpoint (/api/v1/nel)
-                |
-                v
-           Vector --> VictoriaLogs
+```mermaid
+flowchart TD
+    Browser -->|Request| Server[Your Server]
+    Server -->|NEL Headers| Browser
+    Browser -->|On Error| NEL[NEL Endpoint]
+    NEL --> Vector[Vector.dev]
+    Vector --> VL[VictoriaLogs]
 ```
 
 ## Configuration

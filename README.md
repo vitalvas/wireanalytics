@@ -4,12 +4,23 @@ Self-hosted web analytics solution built on open-source components.
 
 ## Architecture
 
-```
-Browser (wa.js) -----> Vector.dev --> VictoriaLogs (events)
-                  |               --> VictoriaMetrics (metrics)
-Browser (NEL) -----
-                                          |
-                                      Grafana
+```mermaid
+flowchart LR
+    subgraph Browser
+        JS[wa.js]
+        NEL[NEL]
+    end
+    Vector[Vector.dev]
+    VL[VictoriaLogs]
+    VM[VictoriaMetrics]
+    Grafana
+
+    JS --> Vector
+    NEL --> Vector
+    Vector --> VL
+    Vector --> VM
+    VL --> Grafana
+    VM --> Grafana
 ```
 
 ## Features

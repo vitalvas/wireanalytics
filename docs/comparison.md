@@ -150,11 +150,23 @@
 
 ### WireAnalytics
 
-```
-Browser (wa.js) -----> Vector.dev --> VictoriaLogs (events)
-                  |               --> VictoriaMetrics (metrics)
-Browser (NEL) -----                        |
-                                       Grafana
+```mermaid
+flowchart LR
+    subgraph Browser
+        JS[wa.js]
+        NEL[NEL]
+    end
+    Vector[Vector.dev]
+    VL[VictoriaLogs]
+    VM[VictoriaMetrics]
+    Grafana
+
+    JS --> Vector
+    NEL --> Vector
+    Vector --> VL
+    Vector --> VM
+    VL --> Grafana
+    VM --> Grafana
 ```
 
 **Advantages:**
@@ -167,10 +179,11 @@ Browser (NEL) -----                        |
 
 ### Google Analytics
 
-```
-Browser --> Google Servers --> BigQuery (optional)
-                |
-          GA Dashboard
+```mermaid
+flowchart LR
+    Browser --> Google[Google Servers]
+    Google --> BigQuery[BigQuery]
+    Google --> Dashboard[GA Dashboard]
 ```
 
 **Advantages:**
@@ -185,10 +198,11 @@ Browser --> Google Servers --> BigQuery (optional)
 
 ### Self-hosted alternatives (Plausible, Matomo)
 
-```
-Browser --> Application Server --> PostgreSQL/MySQL
-                    |
-              Built-in Dashboard
+```mermaid
+flowchart LR
+    Browser --> App[Application Server]
+    App --> DB[PostgreSQL/MySQL]
+    App --> Dashboard[Built-in Dashboard]
 ```
 
 **Advantages:**

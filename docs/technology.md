@@ -6,12 +6,32 @@ WireAnalytics is a self-hosted web analytics solution built on open-source compo
 
 ## Architecture
 
-```
-Browser (wa.js) -----> Vector.dev --> VictoriaLogs (events)
-                  |               --> VictoriaMetrics (metrics)
-Browser (NEL) -----
-                                          |
-                                      Grafana
+```mermaid
+flowchart LR
+    subgraph Browser
+        JS[wa.js]
+        NEL[NEL]
+    end
+
+    subgraph Pipeline
+        Vector[Vector.dev]
+    end
+
+    subgraph Storage
+        VL[VictoriaLogs]
+        VM[VictoriaMetrics]
+    end
+
+    subgraph Visualization
+        Grafana
+    end
+
+    JS --> Vector
+    NEL --> Vector
+    Vector --> VL
+    Vector --> VM
+    VL --> Grafana
+    VM --> Grafana
 ```
 
 ## Components
