@@ -1,18 +1,7 @@
 sources:
-  analytics_http:
+  http_source:
     type: http_server
     address: "0.0.0.0:8080"
-    path: "/api/v1/collect"
-    method: "POST"
-    headers:
-      - "X-Forwarded-For"
-      - "X-Real-IP"
-      - "User-Agent"
-
-  nel_http:
-    type: http_server
-    address: "0.0.0.0:8080"
-    path: "/api/v1/nel/collect"
     method: "POST"
     headers:
       - "X-Forwarded-For"
@@ -22,26 +11,34 @@ sources:
 enrichment_tables:
   geoip_city:
     type: mmdb
-    path: /var/lib/vector/GeoLite2-City.mmdb
+    path: /etc/vector/geoip/GeoLite2-City.mmdb
 
   geoip_asn:
     type: mmdb
-    path: /var/lib/vector/GeoLite2-ASN.mmdb
+    path: /etc/vector/geoip/GeoLite2-ASN.mmdb
 
   allowed_sites:
     type: file
     file:
-      path: /var/lib/vector/allowed_sites.csv
+      path: /etc/vector/allowed_sites.csv
       encoding:
         type: csv
     schema:
       site_id: string
 
 transforms:
+  route_by_path:
+    type: route
+    inputs:
+      - http_source
+    route:
+      analytics: .path == "/api/v1/collect"
+      nel: .path == "/api/v1/nel/collect"
+
   parse_analytics:
     type: remap
     inputs:
-      - analytics_http
+      - route_by_path.analytics
     source: |
       . = parse_json!(.message)
       .received_at = now()
@@ -54,7 +51,7 @@ transforms:
       - parse_analytics
     route:
       allowed: |
-        site, err = get_enrichment_table_record("allowed_sites", {"site_id": .site_id})
+        _, err = get_enrichment_table_record("allowed_sites", {"site_id": .site_id})
         err == null
 
   metrics_analytics_dropped:
@@ -110,7 +107,7 @@ transforms:
   parse_nel:
     type: remap
     inputs:
-      - nel_http
+      - route_by_path.nel
     source: |
       .received_at = now()
       .client_ip = .http_client_ip
@@ -145,7 +142,13 @@ transforms:
 
       .timestamp = now()
       .log_class = "nel"
-      .site_id = parse_url!(.reports[0].url).host
+      url = to_string(.reports[0].url)
+      if url != "" {
+        parsed_url, err = parse_url(url)
+        if err == null {
+          .site_id = parsed_url.host
+        }
+      }
 
   route_nel_site:
     type: route
@@ -153,7 +156,7 @@ transforms:
       - parse_nel
     route:
       allowed: |
-        site, err = get_enrichment_table_record("allowed_sites", {"site_id": .site_id})
+        _, err = get_enrichment_table_record("allowed_sites", {"site_id": .site_id})
         err == null
 
   metrics_nel_dropped:
@@ -181,8 +184,9 @@ transforms:
       - flatten_nel
     source: |
       report = del(.reports)
-      . = merge(., report)
-      .event = "nel_" + (string!(.error_type) ?? "unknown")
+      . = merge!(., report)
+      error_type = string(.error_type) ?? "unknown"
+      .event = "nel_" + error_type
 
 sinks:
   victorialogs:
