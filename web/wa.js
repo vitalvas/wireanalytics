@@ -73,7 +73,7 @@
       return null;
     }
 
-    let session = sessionStorage.getItem(SESSION_KEY);
+    const session = sessionStorage.getItem(SESSION_KEY);
     let sid, lastActivity;
 
     if (session) {
@@ -202,7 +202,7 @@
           webVitals.lcp = Math.round(lastEntry.startTime);
         }
       }).observe({ type: 'largest-contentful-paint', buffered: true });
-    } catch (e) {}
+    } catch (_e) {}
 
     try {
       new PerformanceObserver(function(list) {
@@ -216,7 +216,7 @@
           }
         });
       }).observe({ type: 'first-input', buffered: true });
-    } catch (e) {}
+    } catch (_e) {}
 
     try {
       new PerformanceObserver(function(list) {
@@ -240,7 +240,7 @@
           }
         });
       }).observe({ type: 'layout-shift', buffered: true });
-    } catch (e) {}
+    } catch (_e) {}
 
     try {
       new PerformanceObserver(function(list) {
@@ -255,7 +255,7 @@
           }
         });
       }).observe({ type: 'event', buffered: true, durationThreshold: 16 });
-    } catch (e) {}
+    } catch (_e) {}
 
     try {
       new PerformanceObserver(function(list) {
@@ -266,7 +266,7 @@
           }
         });
       }).observe({ type: 'paint', buffered: true });
-    } catch (e) {}
+    } catch (_e) {}
 
     const navEntry = performance.getEntriesByType('navigation')[0];
     if (navEntry) {
@@ -290,12 +290,24 @@
     const data = collectBaseData('webvitals');
     data.web_vitals = {};
 
-    if (webVitals.lcp !== null) data.web_vitals.lcp = webVitals.lcp;
-    if (webVitals.fid !== null) data.web_vitals.fid = webVitals.fid;
-    if (webVitals.cls !== null) data.web_vitals.cls = webVitals.cls;
-    if (webVitals.inp !== null) data.web_vitals.inp = webVitals.inp;
-    if (webVitals.ttfb !== null) data.web_vitals.ttfb = webVitals.ttfb;
-    if (webVitals.fcp !== null) data.web_vitals.fcp = webVitals.fcp;
+    if (webVitals.lcp !== null) {
+      data.web_vitals.lcp = webVitals.lcp;
+    }
+    if (webVitals.fid !== null) {
+      data.web_vitals.fid = webVitals.fid;
+    }
+    if (webVitals.cls !== null) {
+      data.web_vitals.cls = webVitals.cls;
+    }
+    if (webVitals.inp !== null) {
+      data.web_vitals.inp = webVitals.inp;
+    }
+    if (webVitals.ttfb !== null) {
+      data.web_vitals.ttfb = webVitals.ttfb;
+    }
+    if (webVitals.fcp !== null) {
+      data.web_vitals.fcp = webVitals.fcp;
+    }
 
     send(data);
   }
@@ -314,7 +326,7 @@
     try {
       const stored = localStorage.getItem(AB_TEST_KEY);
       return stored ? JSON.parse(stored) : {};
-    } catch (e) {
+    } catch (_e) {
       return {};
     }
   }
@@ -325,7 +337,7 @@
     }
     try {
       localStorage.setItem(AB_TEST_KEY, JSON.stringify(config.abTests));
-    } catch (e) {}
+    } catch (_e) {}
   }
 
   function getAbTestVariant(testName, variants, weights) {
@@ -337,7 +349,9 @@
     const normalizedWeights = [];
 
     if (weights && weights.length === variants.length) {
-      totalWeight = weights.reduce(function(sum, w) { return sum + w; }, 0);
+      totalWeight = weights.reduce(function(sum, w) {
+        return sum + w;
+      }, 0);
       normalizedWeights.push.apply(normalizedWeights, weights);
     } else {
       totalWeight = variants.length;
@@ -464,7 +478,7 @@
     try {
       const url = new URL(href, window.location.origin);
       return url.hostname !== window.location.hostname;
-    } catch (e) {
+    } catch (_e) {
       return false;
     }
   }
@@ -495,7 +509,7 @@
         const url = new URL(href);
         data.click.external_hostname = url.hostname;
         data.click.external_pathname = url.pathname;
-      } catch (e) {}
+      } catch (_e) {}
     }
 
     const trackAttr = target.getAttribute('data-wa-track');
@@ -545,7 +559,9 @@
       const data = collectBaseData('scroll');
       data.scroll = {
         max_depth: maxScrollDepth,
-        milestones_reached: Array.from(reachedMilestones).sort(function(a, b) { return a - b; })
+        milestones_reached: Array.from(reachedMilestones).sort(function(a, b) {
+          return a - b;
+        })
       };
       send(data);
     }
@@ -735,7 +751,7 @@
     window.addEventListener('beforeprint', trackPrint);
   }
 
-  function trackCopy(event) {
+  function trackCopy(_event) {
     const selection = window.getSelection();
     const selectedText = selection ? selection.toString() : '';
 
@@ -816,7 +832,7 @@
     document.addEventListener('click', detectRageClick, true);
   }
 
-  let pageLoadTime = Date.now();
+  const pageLoadTime = Date.now();
   let activeTime = 0;
   let lastActiveTime = Date.now();
   let isPageActive = true;
@@ -985,7 +1001,7 @@
           }
         });
       }).observe({ type: 'longtask', buffered: true });
-    } catch (e) {}
+    } catch (_e) {}
   }
 
   const trackedImages = new WeakSet();
@@ -1323,7 +1339,9 @@
 
     let mouseMoveThrottle = null;
     document.addEventListener('mousemove', function(event) {
-      if (mouseMoveThrottle) return;
+      if (mouseMoveThrottle) {
+        return;
+      }
       mouseMoveThrottle = setTimeout(function() {
         mouseMoveThrottle = null;
         trackReplayMouseMove(event);
@@ -1334,7 +1352,9 @@
 
     let scrollThrottle = null;
     window.addEventListener('scroll', function() {
-      if (scrollThrottle) return;
+      if (scrollThrottle) {
+        return;
+      }
       scrollThrottle = setTimeout(function() {
         scrollThrottle = null;
         trackReplayScroll();
@@ -1364,7 +1384,7 @@
       const url = new URL(href, window.location.origin);
       const ext = url.pathname.split('.').pop().toLowerCase();
       return DOWNLOAD_EXTENSIONS.includes(ext);
-    } catch (e) {
+    } catch (_e) {
       return false;
     }
   }
@@ -1380,7 +1400,7 @@
         filename: filename,
         extension: ext
       };
-    } catch (e) {
+    } catch (_e) {
       return { url: href, filename: null, extension: null };
     }
   }
@@ -1406,7 +1426,6 @@
     document.addEventListener('click', trackDownloadClick, true);
   }
 
-  const trackedForms = new WeakSet();
   const formStartTimes = new WeakMap();
   const formFieldInteractions = new WeakMap();
 
@@ -1489,14 +1508,10 @@
     window.addEventListener('beforeunload', trackFormAbandonment);
   }
 
-  let isOnline = navigator.onLine;
   let offlineStartTime = null;
   let totalOfflineTime = 0;
 
   function trackNetworkStatus(online) {
-    const previousStatus = isOnline;
-    isOnline = online;
-
     if (!online) {
       offlineStartTime = Date.now();
     } else if (offlineStartTime) {
@@ -1546,12 +1561,16 @@
 
   function formatConsoleArgs(args) {
     return Array.from(args).map(function(arg) {
-      if (arg === null) return 'null';
-      if (arg === undefined) return 'undefined';
+      if (arg === null) {
+        return 'null';
+      }
+      if (arg === undefined) {
+        return 'undefined';
+      }
       if (typeof arg === 'object') {
         try {
           return JSON.stringify(arg).substring(0, 500);
-        } catch (e) {
+        } catch (_e) {
           return '[Object]';
         }
       }
@@ -1560,7 +1579,9 @@
   }
 
   function trackConsoleMessage(level, args) {
-    if (!consoleTrackingEnabled) return;
+    if (!consoleTrackingEnabled) {
+      return;
+    }
 
     const data = collectBaseData('console');
     data.console = {
@@ -1616,20 +1637,24 @@
   let networkTrackingEnabled = false;
 
   function shouldTrackRequest(url) {
-    if (!url) return false;
+    if (!url) {
+      return false;
+    }
     try {
       const urlObj = new URL(url, window.location.origin);
       if (config.endpoint && urlObj.href.startsWith(config.endpoint)) {
         return false;
       }
       return true;
-    } catch (e) {
+    } catch (_e) {
       return false;
     }
   }
 
   function trackNetworkRequest(method, url, status, duration, requestSize, responseSize, error) {
-    if (!networkTrackingEnabled) return;
+    if (!networkTrackingEnabled) {
+      return;
+    }
 
     const data = collectBaseData('network_request');
     data.network_request = {

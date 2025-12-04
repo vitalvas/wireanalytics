@@ -1,0 +1,60 @@
+export default [
+  {
+    files: ["web/**/*.js"],
+    languageOptions: {
+      ecmaVersion: 2022,
+      sourceType: "script",
+      globals: {
+        window: "readonly",
+        document: "readonly",
+        navigator: "readonly",
+        console: "readonly",
+        setTimeout: "readonly",
+        setInterval: "readonly",
+        clearInterval: "readonly",
+        performance: "readonly",
+        PerformanceObserver: "readonly",
+        MutationObserver: "readonly",
+        IntersectionObserver: "readonly",
+        ResizeObserver: "readonly",
+        ReportingObserver: "readonly",
+        fetch: "readonly",
+        XMLHttpRequest: "readonly",
+        localStorage: "readonly",
+        sessionStorage: "readonly",
+        history: "readonly",
+        URLSearchParams: "readonly",
+        clearTimeout: "readonly",
+        crypto: "readonly",
+        Blob: "readonly",
+        URL: "readonly",
+        Request: "readonly",
+        Response: "readonly",
+        Headers: "readonly",
+        AbortController: "readonly",
+        FormData: "readonly",
+        Event: "readonly",
+        CustomEvent: "readonly",
+        ErrorEvent: "readonly",
+        SecurityPolicyViolationEvent: "readonly"
+      }
+    },
+    rules: {
+      "no-unused-vars": ["error", { "argsIgnorePattern": "^_", "caughtErrorsIgnorePattern": "^_" }],
+      "no-undef": "error",
+      "no-console": "off",
+      "semi": ["error", "always"],
+      "quotes": ["error", "single", { "avoidEscape": true }],
+      "indent": ["error", 2],
+      "no-trailing-spaces": "error",
+      "eol-last": ["error", "always"],
+      "no-multiple-empty-lines": ["error", { "max": 1, "maxEOF": 0 }],
+      "comma-dangle": ["error", "never"],
+      "eqeqeq": ["error", "always"],
+      "curly": ["error", "all"],
+      "brace-style": ["error", "1tbs"],
+      "no-var": "error",
+      "prefer-const": "error"
+    }
+  }
+];

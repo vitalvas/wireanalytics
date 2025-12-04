@@ -27,6 +27,16 @@ tasks:
       - echo "Original size:" && wc -c < {{.WEB_DIR}}/wa.js
       - echo "Minified size:" && wc -c < {{.DIST_DIR}}/wa.min.js
 
+  lint:
+    desc: Lint JavaScript files
+    cmds:
+      - npx eslint {{.WEB_DIR}}
+
+  lint:fix:
+    desc: Lint and fix JavaScript files
+    cmds:
+      - npx eslint {{.WEB_DIR}} --fix
+
   clean:
     desc: Remove build artifacts
     cmds:
